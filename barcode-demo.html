@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>条形码/二维码本地识别 - ZBar WASM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(0, 210, 255, 0.2);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #00d2ff;
+            margin: 0 3px;
+        }
+
+        .badge.offline {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #00d2ff, #3a7bd5);
+            border-radius: 2px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #00d2ff;
+            background: rgba(0, 210, 255, 0.05);
+        }
+
+        .drop-zone-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone-text {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .url-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00d2ff;
+        }
+
+        .test-links {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .test-links-title {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .test-link-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .test-link-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .test-link-item:hover {
+            background: rgba(0, 210, 255, 0.1);
+            border-color: rgba(0, 210, 255, 0.3);
+        }
+
+        .test-link-item:active {
+            transform: scale(0.98);
+        }
+
+        .test-link-icon {
+            font-size: 1.2rem;
+        }
+
+        .test-link-text {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .test-link-item::after {
+            content: '→';
+            color: #00d2ff;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .test-link-item:hover::after {
+            opacity: 1;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-camera {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        #scanVideo {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 2px solid rgba(0, 210, 255, 0.5);
+            border-radius: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { border-color: rgba(0, 210, 255, 0.5); }
+            50% { border-color: rgba(0, 210, 255, 1); }
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 5%;
+            width: 90%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d2ff, transparent);
+            animation: scanLine 2s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        #result {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 100px;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-type {
+            font-size: 0.85rem;
+            color: #00d2ff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-data {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 1.1rem;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        .result-meta {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            color: #888;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d2ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .no-result {
+            text-align: center;
+            color: #666;
+            padding: 30px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .supported-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .type-badge {
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .status-dot.loading {
+            background: #FFC107;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .tabs {
+                gap: 5px;
+            }
+
+            .tab {
+                flex: 1;
+                text-align: center;
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+
+            .drop-zone {
+                padding: 25px;
+            }
+
+            .url-input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 条形码/二维码识别</h1>
+        <p class="subtitle">
+            <span class="badge offline">🔌 离线可用</span>
+            <span class="badge">WebAssembly</span>
+            <span class="badge">iPad 兼容</span>
+        </p>
+
+        <div class="card">
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">就绪</span>
+                </div>
+                <div id="deviceInfo"></div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" data-tab="file">📁 上传图片</div>
+                <div class="tab" data-tab="url">🔗 图片链接</div>
+                <div class="tab" data-tab="camera">📹 摄像头扫描</div>
+            </div>
+
+            <!-- 文件上传 -->
+            <div class="tab-content active" id="tab-file">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-icon">📤</div>
+                    <div class="drop-zone-text">点击或拖拽图片到此处</div>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" multiple>
+                <img id="previewImage" class="preview-image" alt="预览">
+            </div>
+
+            <!-- URL 输入 -->
+            <div class="tab-content" id="tab-url">
+                <div class="url-input-group">
+                    <input type="text" id="urlInput" placeholder="输入图片链接...">
+                    <button class="btn" id="scanUrlBtn">识别</button>
+                </div>
+                <div class="test-links">
+                    <div class="test-links-title">📌 测试链接 (点击使用)</div>
+                    <div class="test-link-item" data-url="https://upyun.luckly-mjw.cn/Assets/barCode/test.png">
+                        <span class="test-link-icon">🔲</span>
+                        <span class="test-link-text">条形码测试图片</span>
+                    </div>
+                    <div class="test-link-item" data-url="https://img.2weima.com/qr_template/2021/6/26/8857784941a0f2d2a024044f414c69f9.jpg">
+                        <span class="test-link-icon">⬛</span>
+                        <span class="test-link-text">二维码测试图片</span>
+                    </div>
+                </div>
+                <img id="urlPreviewImage" class="preview-image" alt="预览">
+            </div>
+
+            <!-- 摄像头扫描 -->
+            <div class="tab-content" id="tab-camera">
+                <div class="video-container" id="videoContainer">
+                    <video id="scanVideo" autoplay playsinline></video>
+                    <div class="scan-overlay">
+                        <div class="scan-line"></div>
+                    </div>
+                </div>
+                <button class="btn btn-camera" id="startCameraBtn">📷 启动摄像头</button>
+            </div>
+        </div>
+
+        <!-- 识别结果 -->
+        <div class="card">
+            <div class="card-title">识别结果</div>
+            <div id="result">
+                <div class="no-result">等待识别...</div>
+            </div>
+        </div>
+
+        <!-- 支持的码制 -->
+        <div class="card">
+            <div class="card-title">支持的码制类型</div>
+            <div class="supported-types" id="supportedTypes"></div>
+        </div>
+    </div>
+
+    <!-- 引入 zbar-wasm 和 barcode-scanner -->
+    <script src="zbar-wasm.js"></script>
+    <script src="barcode-scanner.js"></script>
+    
+    <script>
+        // 全局扫描器实例
+        let scanner = null;
+        let cameraControl = null;
+
+        // DOM 元素
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const deviceInfo = document.getElementById('deviceInfo');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewImage = document.getElementById('previewImage');
+        const urlInput = document.getElementById('urlInput');
+        const scanUrlBtn = document.getElementById('scanUrlBtn');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const videoContainer = document.getElementById('videoContainer');
+        const scanVideo = document.getElementById('scanVideo');
+        const resultDiv = document.getElementById('result');
+        const supportedTypesDiv = document.getElementById('supportedTypes');
+
+        // 初始化
+        async function init() {
+            // 检查兼容性
+            if (!BarcodeScanner.isSupported()) {
+                setStatus('error', '您的浏览器不支持 WebAssembly');
+                return;
+            }
+
+            // 显示设备信息
+            if (BarcodeScanner.isIPad()) {
+                deviceInfo.innerHTML = '<span class="badge">iPad/iOS</span>';
+            }
+
+            // 显示支持的码制类型
+            const types = BarcodeScanner.getSupportedTypes();
+            supportedTypesDiv.innerHTML = Object.entries(types).map(([key, value]) => 
+                `<span class="type-badge">${value}</span>`
+            ).join('');
+
+            // 初始化扫描器
+            setStatus('loading', '初始化中...');
+            try {
+                scanner = new BarcodeScanner();
+                await scanner.init();
+                setStatus('ready', '就绪');
+            } catch (e) {
+                setStatus('error', '初始化失败: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        // 设置状态
+        function setStatus(status, text) {
+            statusText.textContent = text;
+            statusDot.className = 'status-dot';
+            
+            if (status === 'loading') {
+                statusDot.classList.add('loading');
+            } else if (status === 'error') {
+                statusDot.style.background = '#f44336';
+            } else {
+                statusDot.style.background = '#4CAF50';
+            }
+        }
+
+        // 显示结果
+        function showResults(results) {
+            if (results.length === 0) {
+                resultDiv.innerHTML = '<div class="no-result">未识别到条形码或二维码</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = results.map(result => `
+                <div class="result-item">
+                    <div class="result-type">
+                        <span>${getTypeIcon(result.typeName)}</span>
+                        <span>${result.typeName}</span>
+                    </div>
+                    <div class="result-data">${escapeHtml(result.data)}</div>
+                    <div class="result-meta">
+                        质量: ${result.quality || 'N/A'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 获取类型图标
+        function getTypeIcon(typeName) {
+            if (typeName.includes('QR')) return '⬛';
+            if (typeName.includes('EAN') || typeName.includes('UPC')) return '📊';
+            if (typeName.includes('ISBN')) return '📚';
+            return '📋';
+        }
+
+        // 转义 HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>识别中...</span>
+                </div>
+            `;
+        }
+
+        // Tab 切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 停止摄像头
+                if (cameraControl) {
+                    cameraControl.stop();
+                    cameraControl = null;
+                    videoContainer.style.display = 'none';
+                    startCameraBtn.textContent = '📷 启动摄像头';
+                    startCameraBtn.classList.remove('btn-stop');
+                }
+
+                // 切换 Tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // 文件拖拽
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // 处理文件
+        async function handleFiles(files) {
+            if (!files.length) return;
+            
+            const file = files[0];
+            
+            // 显示预览
+            const url = URL.createObjectURL(file);
+            previewImage.src = url;
+            previewImage.style.display = 'block';
+            
+            // 识别
+            showLoading();
+            try {
+                const results = await scanner.scanFile(file);
+                showResults(results);
+            } catch (e) {
+                resultDiv.innerHTML = `<div class="no-result">识别失败: ${e.message}</div>`;
+            }
+        }
+
+        // URL 识别
+        scanUrlBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            previewImage.src = url;
+            previewImage.style.display = 'block';
+            previewImage.onerror = () => {
+                previewImage.style.display = 'none';
+            };
+
+            showLoading();
+            try {
+                const results = await scanner.scanUrl(url);
+                showResults(results);
+            } catch (e) {
+                resultDiv.innerHTML = `<div class="no-result">识别失败: ${e.message}</div>`;
+            }
+        });
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                scanUrlBtn.click();
+            }
+        });
+
+        // 测试链接点击事件
+        const urlPreviewImage = document.getElementById('urlPreviewImage');
+        document.querySelectorAll('.test-link-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const url = item.dataset.url;
+                urlInput.value = url;
+                
+                // 显示预览
+                urlPreviewImage.src = url;
+                urlPreviewImage.style.display = 'block';
+                urlPreviewImage.onerror = () => {
+                    urlPreviewImage.style.display = 'none';
+                };
+
+                // 自动开始识别
+                showLoading();
+                try {
+                    const results = await scanner.scanUrl(url);
+                    showResults(results);
+                } catch (e) {
+                    resultDiv.innerHTML = `<div class="no-result">识别失败: ${e.message}</div>`;
+                }
+            });
+        });
+
+        // 摄像头扫描
+        startCameraBtn.addEventListener('click', async () => {
+            if (cameraControl) {
+                // 停止摄像头
+                cameraControl.stop();
+                cameraControl = null;
+                videoContainer.style.display = 'none';
+                startCameraBtn.textContent = '📷 启动摄像头';
+                startCameraBtn.classList.remove('btn-stop');
+                return;
+            }
+
+            try {
+                startCameraBtn.disabled = true;
+                startCameraBtn.textContent = '启动中...';
+
+                cameraControl = await scanner.startCamera(scanVideo, (results) => {
+                    showResults(results);
+                    // 震动反馈(移动端)
+                    if (navigator.vibrate) {
+                        navigator.vibrate(100);
+                    }
+                }, {
+                    interval: 200,
+                    stopOnResult: false
+                });
+
+                videoContainer.style.display = 'block';
+                startCameraBtn.textContent = '⏹ 停止扫描';
+                startCameraBtn.classList.add('btn-stop');
+            } catch (e) {
+                alert('无法启动摄像头: ' + e.message);
+                startCameraBtn.textContent = '📷 启动摄像头';
+            } finally {
+                startCameraBtn.disabled = false;
+            }
+        });
+
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>
