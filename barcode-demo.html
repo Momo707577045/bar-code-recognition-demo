@@ -506,11 +506,11 @@
                 </div>
                 <div class="test-links">
                     <div class="test-links-title">📌 测试链接 (点击使用)</div>
-                    <div class="test-link-item" data-url="https://upyun.luckly-mjw.cn/Assets/barCode/test.png">
+                    <div class="test-link-item" data-url="https://upyun.luckly-mjw.cn/Assets/barCode/barCodeOrigin.jpg">
                         <span class="test-link-icon">🔲</span>
                         <span class="test-link-text">条形码测试图片</span>
                     </div>
-                    <div class="test-link-item" data-url="https://img.2weima.com/qr_template/2021/6/26/8857784941a0f2d2a024044f414c69f9.jpg">
+                    <div class="test-link-item" data-url="https://upyun.luckly-mjw.cn/Assets/barCode/qrCode.png">
                         <span class="test-link-icon">⬛</span>
                         <span class="test-link-text">二维码测试图片</span>
                     </div>
@@ -671,6 +671,13 @@
                     startCameraBtn.textContent = '📷 启动摄像头';
                     startCameraBtn.classList.remove('btn-stop');
                 }
+
+                // 清空识别结果
+                resultDiv.innerHTML = '<div class="no-result">等待识别...</div>';
+
+                // 隐藏预览图片
+                previewImage.style.display = 'none';
+                urlPreviewImage.style.display = 'none';
 
                 // 切换 Tab
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));

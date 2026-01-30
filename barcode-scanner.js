@@ -83,8 +83,25 @@ class BarcodeScanner {
      * @returns {Promise<Array>} 识别结果数组
      */
     async scanUrl(url) {
-        const img = await this._loadImage(url);
-        return this.scanImage(img);
+        // 判断是否为外部链接
+        const isExternal = url.startsWith('http://') || url.startsWith('https://');
+        
+        if (isExternal) {
+            // 外部链接优先使用 fetch 方式加载，获取原始图片数据
+            try {
+                const img = await this._loadImageViaFetch(url);
+                return this.scanImage(img);
+            } catch (e) {
+                console.warn('Fetch 方式加载失败，尝试传统方式:', e.message);
+                // 回退到传统方式
+                const img = await this._loadImage(url);
+                return this.scanImage(img);
+            }
+        } else {
+            // 本地链接或 data URL 直接使用传统方式
+            const img = await this._loadImage(url);
+            return this.scanImage(img);
+        }
     }
 
     /**
@@ -279,7 +296,7 @@ class BarcodeScanner {
     }
 
     /**
-     * 加载图片
+     * 加载图片（传统方式）
      * @private
      */
     _loadImage(url) {
@@ -292,6 +309,32 @@ class BarcodeScanner {
             
             img.src = url;
         });
+    }
+
+    /**
+     * 通过 fetch 加载图片（获取原始图片数据，避免跨域问题）
+     * @private
+     */
+    async _loadImageViaFetch(url) {
+        const response = await fetch(url, {
+            mode: 'cors',
+            cache: 'no-cache'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        
+        try {
+            const img = await this._loadImage(objectUrl);
+            return img;
+        } finally {
+            // 延迟释放，确保图片已经被处理
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        }
     }
 
     /**
